@@ -1,0 +1,2 @@
+# marvelcdb-cli
+Command-line interface for viewing decks and decklists
