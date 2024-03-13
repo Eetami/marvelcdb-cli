@@ -2,6 +2,7 @@
 
 declare MCDB_API_URL='https://marvelcdb.com/api/public'
 declare CARDS_CACHE="${HOME}/.mcdb/cards"
+declare WAVE_ORDER=false
 declare RELEASE_ORDER=false
 declare DECK_JSON
 
@@ -160,6 +161,14 @@ print_waves() {
   done
 }
 
+print_cards() {
+  local IFS='
+'
+  for card_json in $(jq -cn 'inputs' "$@"); do
+    print_card "$card_json"
+  done
+}
+
 print_deck() {
   local deck_name=$(jq -r '.name' <<<"$DECK_JSON")
 
@@ -170,7 +179,7 @@ print_deck() {
     card_files+=($(get_card_file $card_id_json))
   done
 
-  if $RELEASE_ORDER; then
+  if $WAVE_ORDER; then
     local cards_json=$(jq -cn '[inputs] | group_by(.code | .[0:2] | tonumber |
     if . < 11 then 1
     elif . < 16 then 2
@@ -182,6 +191,9 @@ print_deck() {
     elif . < 50 then 8
     else 99 end)' "${card_files[@]}")
     print_waves "$cards_json"
+  elif $RELEASE_ORDER; then
+    # local cards_json=$(jq -cn '[inputs]' "${card_files[@]}")
+    print_cards "${card_files[@]}"
   else
     local cards_json=$(jq -cn '[inputs] | group_by(.faction_code |
       if . == "hero" then 1
@@ -196,7 +208,7 @@ print_deck() {
   fi
 }
 
-while getopts 'd:l:r' opt; do
+while getopts 'd:l:rw' opt; do
   case $opt in
     d)
       DECK_JSON="$(curl -s "${MCDB_API_URL}/deck/${OPTARG}")"
@@ -206,6 +218,9 @@ while getopts 'd:l:r' opt; do
       ;;
     r)
       RELEASE_ORDER=true
+      ;;
+    w)
+      WAVE_ORDER=true
       ;;
   esac
 done
