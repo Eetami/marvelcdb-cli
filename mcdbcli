@@ -2,6 +2,7 @@
 
 declare MCDB_API_URL='https://marvelcdb.com/api/public'
 declare CARDS_CACHE="${HOME}/.mcdb/cards"
+declare RELEASE_ORDER=false
 declare -a CARD_IDS
 
 print_faction_color() {
@@ -32,23 +33,24 @@ print_faction_color() {
 }
 
 get_wave_number() {
-  local -i pack_id=$1
+  local pack_id=${1:0:2}
+  local -i pack_number=${pack_id#0}
 
-  if [ $pack_id -lt 11 ]; then
+  if [ $pack_number -lt 11 ]; then
     echo 1
-  elif [ $pack_id -lt 16 ]; then
+  elif [ $pack_number -lt 16 ]; then
     echo 2
-  elif [ $pack_id -lt 21 ]; then
+  elif [ $pack_number -lt 21 ]; then
     echo 3
-  elif [ $pack_id -lt 27 ]; then
+  elif [ $pack_number -lt 27 ]; then
     echo 4
-  elif [ $pack_id -lt 32 ]; then
+  elif [ $pack_number -lt 32 ]; then
     echo 5
-  elif [ $pack_id -lt 39 ]; then
+  elif [ $pack_number -lt 39 ]; then
     echo 6
-  elif [ $pack_id -lt 45 ]; then
+  elif [ $pack_number -lt 45 ]; then
     echo 7
-  elif [ $pack_id -lt 50 ]; then
+  elif [ $pack_number -lt 50 ]; then
     echo 8
   else
     echo 99
@@ -57,10 +59,17 @@ get_wave_number() {
 
 print_card() {
   local card_json="$1"
+  local print_aspect_or_wave="$2"
 
   local card_id="$(jq -r '.code' <<<$card_json)"
-  local pack_id=${card_id:0:2}
-  local wave_number=$(get_wave_number "${pack_id#0}")
+  local aspect_or_wave
+  if [ "$print_aspect_or_wave" = 'wave' ]; then
+    aspect_or_wave="Wave #$(get_wave_number $card_id)"
+  elif [ "$print_aspect_or_wave" = 'aspect' ]; then
+    aspect_or_wave="Aspect: $(jq -r '.faction_name' <<<"$card_json")"
+  fi
+
+  local wave_number=$(get_wave_number "$card_id")
   local amount=$(jq -nr "inputs | select(.card_id == \"$card_id\") | .amount" <<<"${CARD_IDS[*]}")
   local faction_code="$(jq -r '.faction_code' <<<$card_json)"
   local card_name="$(jq -r '.real_name' <<<$card_json)"
@@ -71,7 +80,7 @@ print_card() {
 
   print_faction_color "$faction_code"
 
-  printf '%s\e[0m (\e[90mWave #%d\e[0m %s #%d)\n' "$card_name" "$wave_number" "$pack_name" "$position"
+  printf '%s\e[0m (\e[90m%s\e[0m %s #%d)\n' "$card_name" "$aspect_or_wave" "$pack_name" "$position"
 }
 
 get_card_file() {
@@ -111,7 +120,7 @@ print_faction_heading() {
       printf 'Protection cards'
       ;;
     'pool')
-      printf 'Pool cards'
+      printf "'Pool cards"
       ;;
     'basic')
       printf 'Basic cards'
@@ -124,19 +133,33 @@ print_faction_heading() {
   printf ' ===\e[0m\n'
 }
 
-print_faction() {
-  local faction_code="$1"
-  local cards_json="$2"
+print_factions() {
+  local cards_json="$1"
 
-  if jq -e ".$faction_code" <<<"$cards_json" &>/dev/null; then
-    print_faction_heading $faction_code
-
-    IFS='
+  local IFS='
 '
-    for card_json in $(jq -c ".$faction_code | .[]" <<<"$cards_json"); do
-      print_card "$card_json"
+  for faction_json in $(jq -c '.[]' <<<"$cards_json"); do
+    local faction_code=$(jq -r '.[0].faction_code' <<<"$faction_json")
+    print_faction_heading $faction_code
+    for card_json in $(jq -c '.[]' <<<"$faction_json"); do
+      print_card "$card_json" 'wave'
     done
-  fi
+  done
+}
+
+print_waves() {
+  local cards_json="$1"
+
+  local IFS='
+'
+  for wave_json in $(jq -c '.[]' <<<"$cards_json"); do
+    local card_id=$(jq -r '.[0].code' <<<"$wave_json")
+    local wave_number=$(get_wave_number $card_id)
+    printf '=== Wave #%d ===\n' "$wave_number"
+    for card_json in $(jq -c '.[]' <<<"$wave_json"); do
+      print_card "$card_json" 'aspect'
+    done
+  done
 }
 
 print_deck() {
@@ -153,20 +176,33 @@ print_deck() {
     card_files+=($(get_card_file $card_id_json))
   done
 
-  local cards_json=$(jq -cn '[inputs] | [group_by(.faction_code)[] | {(.[0].faction_code): [.[]]}] | add' "${card_files[@]}")
-  print_faction 'hero' "$cards_json"
-  print_faction 'aggression' "$cards_json"
-  print_faction 'justice' "$cards_json"
-  print_faction 'leadership' "$cards_json"
-  print_faction 'protection' "$cards_json"
-  print_faction 'pool' "$cards_json"
-  print_faction 'basic' "$cards_json"
+  if $RELEASE_ORDER; then
+    local cards_json=$(jq -cn '[inputs] | group_by(.code | .[0:2] | tonumber |
+    if . < 11 then 1
+    elif . < 16 then 2
+    elif . < 21 then 3
+    elif . < 27 then 4
+    elif . < 32 then 5
+    elif . < 39 then 6
+    elif . < 45 then 7
+    elif . < 50 then 8
+    else 99 end)' "${card_files[@]}")
+    print_waves "$cards_json"
+  else
+    local cards_json=$(jq -cn '[inputs] | group_by(.faction_code |
+      if . == "hero" then 1
+      elif . == "aggression" then 2
+      elif . == "justice" then 3
+      elif . == "leadership" then 4
+      elif . == "protection" then 5
+      elif . == "pool" then 5
+      elif . == "basic" then 6
+      else 99 end)' "${card_files[@]}")
+    print_factions "$cards_json"
+  fi
 }
 
-if [ -z "$1" ]; then
-  read -rd '' deck_json
-else
-  getopts 'd:l:' opt
+while getopts 'd:l:r' opt; do
   case $opt in
     d)
       deck_json="$(curl -s "${MCDB_API_URL}/deck/${OPTARG}")"
@@ -174,11 +210,14 @@ else
     l)
       deck_json="$(curl -s "${MCDB_API_URL}/decklist/${OPTARG}")"
       ;;
-    *)
-      echo "Invalid option" >&2
-      exit 1
+    r)
+      RELEASE_ORDER=true
       ;;
   esac
+done
+
+if [ -z "$deck_json" ]; then
+  read -rd '' deck_json
 fi
 
 print_deck "$deck_json"
