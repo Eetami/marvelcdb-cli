@@ -85,5 +85,5 @@ Wild Tutor - Adam Warlock
 mcdbcli caches the loaded cards to your home directory under `~/.mcdb/cards`. To remove the cached cards run the following command
 
 ```sh
-rm -rf ~/.mcdb/cards
+rm -rf ~/.mcdb
 ```

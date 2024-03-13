@@ -3,6 +3,7 @@
 declare MCDB_API_URL='https://marvelcdb.com/api/public'
 declare -a CARD_IDS
 export CARD_IDS
+declare CARDS_CACHE="${HOME}/.mcdb/cards"
 
 print_faction_color() {
   local faction_code="$1"
@@ -53,12 +54,15 @@ get_card_file() {
   local amount="$(jq -r '.amount' <<<$card_id_json)"
   local card_id="$(jq -r '.card_id' <<<$card_id_json)"
 
-  if [ ! -f $HOME/.mcdb/cards/$card_id ]; then
-    mkdir -p $HOME/.mcdb/cards
-    curl -so $HOME/.mcdb/cards/$card_id "${MCDB_API_URL}/card/${card_id}"
+  if [ ! -d $CARDS_CACHE ]; then
+    mkdir -p $CARDS_CACHE
   fi
 
-  echo "$HOME/.mcdb/cards/$card_id"
+  if [ ! -f $CARDS_CACHE/$card_id ]; then
+    curl -so $CARDS_CACHE/$card_id "${MCDB_API_URL}/card/${card_id}"
+  fi
+
+  echo "$CARDS_CACHE/$card_id"
 }
 
 print_faction_heading() {
