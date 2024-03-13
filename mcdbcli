@@ -1,9 +1,8 @@
 #!/bin/bash
 
 declare MCDB_API_URL='https://marvelcdb.com/api/public'
-declare -a CARD_IDS
-export CARD_IDS
 declare CARDS_CACHE="${HOME}/.mcdb/cards"
+declare -a CARD_IDS
 
 print_faction_color() {
   local faction_code="$1"
