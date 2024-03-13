@@ -27,7 +27,7 @@ print_faction_color() {
       printf '\e[90m'
       ;;
     'hero')
-      printf '\e[0m'
+      printf '\e[90m'
       ;;
   esac
 }
@@ -59,16 +59,8 @@ get_wave_number() {
 
 print_card() {
   local card_json="$1"
-  local print_aspect_or_wave="$2"
 
   local card_id="$(jq -r '.code' <<<$card_json)"
-  local aspect_or_wave
-  if [ "$print_aspect_or_wave" = 'wave' ]; then
-    aspect_or_wave="Wave #$(get_wave_number $card_id)"
-  elif [ "$print_aspect_or_wave" = 'aspect' ]; then
-    aspect_or_wave="Aspect: $(jq -r '.faction_name' <<<"$card_json")"
-  fi
-
   local wave_number=$(get_wave_number "$card_id")
   local amount=$(jq -nr "inputs | select(.card_id == \"$card_id\") | .amount" <<<"${CARD_IDS[*]}")
   local faction_code="$(jq -r '.faction_code' <<<$card_json)"
@@ -76,11 +68,11 @@ print_card() {
   local pack_name="$(jq -r '.pack_name' <<<$card_json)"
   local position="$(jq -r '.position' <<<$card_json)"
 
-  printf '%d \u00D7 ' "$amount"
+  printf '  %d \u00D7 ' "$amount"
 
   print_faction_color "$faction_code"
 
-  printf '%s\e[0m (\e[90m%s\e[0m %s #%d)\n' "$card_name" "$aspect_or_wave" "$pack_name" "$position"
+  printf '%s\e[0m (\e[90mWave #%s\e[0m %s #%d)\n' "$card_name" "$wave_number" "$pack_name" "$position"
 }
 
 get_card_file() {
@@ -104,7 +96,7 @@ print_faction_heading() {
 
   print_faction_color $faction_code
 
-  printf '=== '
+  printf ' '
 
   case $faction_code in
     'aggression')
@@ -130,7 +122,7 @@ print_faction_heading() {
       ;;
   esac
 
-  printf ' ===\e[0m\n'
+  printf '\e[0m\n'
 }
 
 print_factions() {
@@ -142,7 +134,7 @@ print_factions() {
     local faction_code=$(jq -r '.[0].faction_code' <<<"$faction_json")
     print_faction_heading $faction_code
     for card_json in $(jq -c '.[]' <<<"$faction_json"); do
-      print_card "$card_json" 'wave'
+      print_card "$card_json"
     done
   done
 }
@@ -155,10 +147,17 @@ print_waves() {
   for wave_json in $(jq -c '.[]' <<<"$cards_json"); do
     local card_id=$(jq -r '.[0].code' <<<"$wave_json")
     local wave_number=$(get_wave_number $card_id)
-    printf '=== Wave #%d ===\n' "$wave_number"
-    for card_json in $(jq -c '.[]' <<<"$wave_json"); do
-      print_card "$card_json" 'aspect'
-    done
+    printf 'Wave #%d\n' "$wave_number"
+    local faction_json=$(jq -c 'group_by(.faction_code |
+      if . == "hero" then 1
+      elif . == "aggression" then 2
+      elif . == "justice" then 3
+      elif . == "leadership" then 4
+      elif . == "protection" then 5
+      elif . == "pool" then 5
+      elif . == "basic" then 6
+      else 99 end)' <<<"$wave_json")
+    print_factions "$faction_json"
   done
 }
 
