@@ -79,3 +79,11 @@ Wild Tutor - Adam Warlock
 1 × Deft Focus (Galaxy's Most Wanted #24)
 1 × Gamora (Drax #20)
 ```
+
+## Caching
+
+mcdbcli caches the loaded cards to your home directory under `~/.mcdb/cards`. To remove the cached cards run the following command
+
+```sh
+rm -rf ~/.mcdb/cards
+```
