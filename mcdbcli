@@ -1,0 +1,155 @@
+#!/bin/bash
+
+declare MCDB_API_URL='https://marvelcdb.com/api/public'
+declare -a CARD_IDS
+export CARD_IDS
+
+print_faction_color() {
+  local faction_code="$1"
+  case $faction_code in
+    'aggression')
+      printf '\e[91m'
+      ;;
+    'justice')
+      printf '\e[93m'
+      ;;
+    'leadership')
+      printf '\e[96m'
+      ;;
+    'protection')
+      printf '\e[92m'
+      ;;
+    'pool')
+      printf '\e[95m'
+      ;;
+    'basic')
+      printf '\e[90m'
+      ;;
+    'hero')
+      printf '\e[0m'
+      ;;
+  esac
+}
+
+print_card() {
+  local card_json="$1"
+
+  local card_id="$(jq -r '.code' <<<$card_json)"
+  local amount=$(jq -nr "inputs | select(.card_id == \"$card_id\") | .amount" <<<"${CARD_IDS[*]}")
+  local faction_code="$(jq -r '.faction_code' <<<$card_json)"
+  local card_name="$(jq -r '.real_name' <<<$card_json)"
+  local pack_name="$(jq -r '.pack_name' <<<$card_json)"
+  local position="$(jq -r '.position' <<<$card_json)"
+
+  printf '%i \u00D7 ' "$amount"
+
+  print_faction_color "$faction_code"
+
+  printf '%s\e[0m (%s #%i)\n' "$card_name" "$pack_name" "$position"
+}
+
+get_card_file() {
+  local card_id_json="$1"
+  local amount="$(jq -r '.amount' <<<$card_id_json)"
+  local card_id="$(jq -r '.card_id' <<<$card_id_json)"
+
+  if [ ! -f $HOME/.mcdb/cards/$card_id ]; then
+    mkdir -p $HOME/.mcdb/cards
+    curl -so $HOME/.mcdb/cards/$card_id "${MCDB_API_URL}/card/${card_id}"
+  fi
+
+  echo "$HOME/.mcdb/cards/$card_id"
+}
+
+print_faction_heading() {
+  local faction_code="$1"
+
+  print_faction_color $faction_code
+
+  printf '=== '
+
+  case $faction_code in
+    'aggression')
+      printf 'Aggression cards'
+      ;;
+    'justice')
+      printf 'Justice cards'
+      ;;
+    'leadership')
+      printf 'Leadership cards'
+      ;;
+    'protection')
+      printf 'Protection cards'
+      ;;
+    'pool')
+      printf 'Pool cards'
+      ;;
+    'basic')
+      printf 'Basic cards'
+      ;;
+    'hero')
+      printf 'Hero cards'
+      ;;
+  esac
+
+  printf ' ===\e[0m\n'
+}
+
+print_faction() {
+  local faction_code="$1"
+  local cards_json="$2"
+
+  if jq -e ".$faction_code" <<<"$cards_json" &>/dev/null; then
+    print_faction_heading $faction_code
+
+    IFS='
+'
+    for card_json in $(jq -c ".$faction_code | .[]" <<<"$cards_json"); do
+      print_card "$card_json"
+    done
+  fi
+}
+
+print_deck() {
+  local deck="$1"
+
+  local deck_name=$(jq -r '.name' <<<"$deck")
+
+  printf '%s\n' "$deck_name"
+
+  CARD_IDS=($(jq -c '.slots | to_entries | .[] | {card_id: .key, amount: .value}' <<<$deck))
+
+  local -a card_files
+  for card_id_json in "${CARD_IDS[@]}"; do
+    card_files+=($(get_card_file $card_id_json))
+  done
+
+  local cards_json=$(jq -cn '[inputs] | [group_by(.faction_code)[] | {(.[0].faction_code): [.[]]}] | add' "${card_files[@]}")
+  print_faction 'hero' "$cards_json"
+  print_faction 'aggression' "$cards_json"
+  print_faction 'justice' "$cards_json"
+  print_faction 'leadership' "$cards_json"
+  print_faction 'protection' "$cards_json"
+  print_faction 'pool' "$cards_json"
+  print_faction 'basic' "$cards_json"
+}
+
+if [ -z "$1" ]; then
+  read -rd '' deck_json
+else
+  getopts 'd:l:' opt
+  case $opt in
+    d)
+      deck_json="$(curl -s "${MCDB_API_URL}/deck/${OPTARG}")"
+      ;;
+    l)
+      deck_json="$(curl -s "${MCDB_API_URL}/decklist/${OPTARG}")"
+      ;;
+    *)
+      echo "Invalid option" >&2
+      exit 1
+      ;;
+  esac
+fi
+
+print_deck "$deck_json"
