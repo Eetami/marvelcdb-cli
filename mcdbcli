@@ -34,7 +34,7 @@ print_faction_color() {
 get_wave_number() {
   local -i pack_id=$1
 
-  if [ $pack_id -lt 10 ]; then
+  if [ $pack_id -lt 11 ]; then
     echo 1
   elif [ $pack_id -lt 16 ]; then
     echo 2

@@ -50,8 +50,8 @@ Wild Tutor - Adam Warlock
 2 × Quantum Magic (Wave #4 The Mad Titan's Shadow #40)
 === Aggression cards ===
 1 × The Power of Aggression (Wave #1 Core Set #55)
-1 × Drop Kick (Wave #2 Hulk #14)
-1 × Martial Prowess (Wave #2 Hulk #18)
+1 × Drop Kick (Wave #1 Hulk #14)
+1 × Martial Prowess (Wave #1 Hulk #18)
 1 × Magic Attack (Wave #4 The Mad Titan's Shadow #43)
 === Justice cards ===
 1 × The Power of Justice (Wave #1 Core Set #62)
