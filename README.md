@@ -38,7 +38,7 @@ Print a popular decklist:
 ```console
 $ mcdbcli -l 13922
 Wild Tutor - Adam Warlock
- Hero cards
+ Adam Warlock cards
   1 × Pip the Troll (Wave #4 The Mad Titan's Shadow #32)
   1 × Soul World (Wave #4 The Mad Titan's Shadow #33)
   1 × Karmic Staff (Wave #4 The Mad Titan's Shadow #34)
@@ -118,7 +118,7 @@ Wave #3
   1 × Deft Focus (Wave #3 Galaxy's Most Wanted #24)
   1 × Gamora (Wave #3 Drax #20)
 Wave #4
- Hero cards
+ Adam Warlock cards
   1 × Pip the Troll (Wave #4 The Mad Titan's Shadow #32)
   1 × Soul World (Wave #4 The Mad Titan's Shadow #33)
   1 × Karmic Staff (Wave #4 The Mad Titan's Shadow #34)
