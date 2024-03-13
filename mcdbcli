@@ -3,7 +3,7 @@
 declare MCDB_API_URL='https://marvelcdb.com/api/public'
 declare CARDS_CACHE="${HOME}/.mcdb/cards"
 declare RELEASE_ORDER=false
-declare -a CARD_IDS
+declare DECK_JSON
 
 print_faction_color() {
   local faction_code="$1"
@@ -62,7 +62,7 @@ print_card() {
 
   local card_id="$(jq -r '.code' <<<$card_json)"
   local wave_number=$(get_wave_number "$card_id")
-  local amount=$(jq -nr "inputs | select(.card_id == \"$card_id\") | .amount" <<<"${CARD_IDS[*]}")
+  local amount=$(jq -r --arg card_id $card_id '.slots[$card_id]' <<<"${DECK_JSON}")
   local faction_code="$(jq -r '.faction_code' <<<$card_json)"
   local card_name="$(jq -r '.real_name' <<<$card_json)"
   local pack_name="$(jq -r '.pack_name' <<<$card_json)"
@@ -76,9 +76,7 @@ print_card() {
 }
 
 get_card_file() {
-  local card_id_json="$1"
-  local amount="$(jq -r '.amount' <<<$card_id_json)"
-  local card_id="$(jq -r '.card_id' <<<$card_id_json)"
+  local card_id="$1"
 
   if [ ! -d $CARDS_CACHE ]; then
     mkdir -p $CARDS_CACHE
@@ -162,16 +160,12 @@ print_waves() {
 }
 
 print_deck() {
-  local deck="$1"
-
-  local deck_name=$(jq -r '.name' <<<"$deck")
+  local deck_name=$(jq -r '.name' <<<"$DECK_JSON")
 
   printf '%s\n' "$deck_name"
 
-  CARD_IDS=($(jq -c '.slots | to_entries | .[] | {card_id: .key, amount: .value}' <<<$deck))
-
   local -a card_files
-  for card_id_json in "${CARD_IDS[@]}"; do
+  for card_id_json in $(jq -cr '.slots | keys | .[]' <<<"$DECK_JSON"); do
     card_files+=($(get_card_file $card_id_json))
   done
 
@@ -204,10 +198,10 @@ print_deck() {
 while getopts 'd:l:r' opt; do
   case $opt in
     d)
-      deck_json="$(curl -s "${MCDB_API_URL}/deck/${OPTARG}")"
+      DECK_JSON="$(curl -s "${MCDB_API_URL}/deck/${OPTARG}")"
       ;;
     l)
-      deck_json="$(curl -s "${MCDB_API_URL}/decklist/${OPTARG}")"
+      DECK_JSON="$(curl -s "${MCDB_API_URL}/decklist/${OPTARG}")"
       ;;
     r)
       RELEASE_ORDER=true
@@ -215,8 +209,8 @@ while getopts 'd:l:r' opt; do
   esac
 done
 
-if [ -z "$deck_json" ]; then
-  read -rd '' deck_json
+if [ -z "$DECK_JSON" ]; then
+  read -rd '' DECK_JSON
 fi
 
-print_deck "$deck_json"
+print_deck
