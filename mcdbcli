@@ -31,21 +31,47 @@ print_faction_color() {
   esac
 }
 
+get_wave_number() {
+  local -i pack_id=$1
+
+  if [ $pack_id -lt 10 ]; then
+    echo 1
+  elif [ $pack_id -lt 16 ]; then
+    echo 2
+  elif [ $pack_id -lt 21 ]; then
+    echo 3
+  elif [ $pack_id -lt 27 ]; then
+    echo 4
+  elif [ $pack_id -lt 32 ]; then
+    echo 5
+  elif [ $pack_id -lt 39 ]; then
+    echo 6
+  elif [ $pack_id -lt 45 ]; then
+    echo 7
+  elif [ $pack_id -lt 50 ]; then
+    echo 8
+  else
+    echo 99
+  fi
+}
+
 print_card() {
   local card_json="$1"
 
   local card_id="$(jq -r '.code' <<<$card_json)"
+  local pack_id=${card_id:0:2}
+  local wave_number=$(get_wave_number "${pack_id#0}")
   local amount=$(jq -nr "inputs | select(.card_id == \"$card_id\") | .amount" <<<"${CARD_IDS[*]}")
   local faction_code="$(jq -r '.faction_code' <<<$card_json)"
   local card_name="$(jq -r '.real_name' <<<$card_json)"
   local pack_name="$(jq -r '.pack_name' <<<$card_json)"
   local position="$(jq -r '.position' <<<$card_json)"
 
-  printf '%i \u00D7 ' "$amount"
+  printf '%d \u00D7 ' "$amount"
 
   print_faction_color "$faction_code"
 
-  printf '%s\e[0m (%s #%i)\n' "$card_name" "$pack_name" "$position"
+  printf '%s\e[0m (\e[90mWave #%d\e[0m %s #%d)\n' "$card_name" "$wave_number" "$pack_name" "$position"
 }
 
 get_card_file() {
