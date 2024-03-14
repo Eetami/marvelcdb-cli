@@ -280,7 +280,7 @@ Wild Tutor - Adam Warlock
 Print a popular deck in waves in alphabetical order by aspect:
 
 ```console
-$ mcdbcli -l 13922 -a -w
+$ mcdbcli -l 13922 -aw
 Wild Tutor - Adam Warlock
 Wave #1
  Aggression cards
