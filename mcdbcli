@@ -2,8 +2,10 @@
 
 declare MCDB_API_URL='https://marvelcdb.com/api/public'
 declare CARDS_CACHE="${HOME}/.mcdb/cards"
+declare ALPHABETICAL_ORDER=false
 declare PACK_ORDER=false
 declare RELEASE_ORDER=false
+declare SUPER_ALPHABETICAL_ORDER=false
 declare WAVE_ORDER=false
 declare DECK_JSON
 
@@ -134,7 +136,9 @@ print_factions() {
   for faction_json in $(jq -c '.[]' <<<"$cards_json"); do
     local faction_code=$(jq -r '.[0].faction_code' <<<"$faction_json")
     print_faction_heading $faction_code
-    for card_json in $(jq -c '.[]' <<<"$faction_json"); do
+    for card_json in $(jq -c --arg alpha $ALPHABETICAL_ORDER 'if $alpha
+    then sort_by(.real_name) | .[]
+    else .[] end' <<<"$faction_json"); do
       print_card "$card_json"
     done
   done
@@ -182,6 +186,14 @@ print_packs() {
   done
 }
 
+print_alphabetically() {
+  local IFS='
+'
+  for card_json in $(jq -cn '[inputs] | sort_by(.real_name) | .[]' "$@"); do
+    print_card "$card_json"
+  done
+}
+
 print_cards() {
   local IFS='
 '
@@ -200,7 +212,11 @@ print_deck() {
     card_files+=($(get_card_file $card_id_json))
   done
 
-  if $WAVE_ORDER; then
+  if $SUPER_ALPHABETICAL_ORDER; then
+    print_alphabetically "${card_files[@]}"
+  elif $RELEASE_ORDER; then
+    print_cards "${card_files[@]}"
+  elif $WAVE_ORDER; then
     local cards_json=$(jq -cn '[inputs] | group_by(.code | .[0:2] | tonumber |
     if . < 11 then 1
     elif . < 16 then 2
@@ -215,8 +231,6 @@ print_deck() {
   elif $PACK_ORDER; then
     local cards_json=$(jq -cn '[inputs] | group_by(.code | .[0:2] | tonumber)' "${card_files[@]}")
     print_packs "$cards_json"
-  elif $RELEASE_ORDER; then
-    print_cards "${card_files[@]}"
   else
     local cards_json=$(jq -cn '[inputs] | group_by(.faction_code |
       if . == "hero" then 1
@@ -231,13 +245,19 @@ print_deck() {
   fi
 }
 
-while getopts 'd:l:rwp' opt; do
+while getopts 'd:l:aprw' opt; do
   case $opt in
     d)
       DECK_JSON="$(curl -s "${MCDB_API_URL}/deck/${OPTARG}")"
       ;;
     l)
       DECK_JSON="$(curl -s "${MCDB_API_URL}/decklist/${OPTARG}")"
+      ;;
+    a)
+      if $ALPHABETICAL_ORDER; then
+        SUPER_ALPHABETICAL_ORDER=true
+      fi
+      ALPHABETICAL_ORDER=true
       ;;
     p)
       PACK_ORDER=true
