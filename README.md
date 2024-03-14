@@ -8,19 +8,19 @@ By default mcdbcli prints the deck in release order grouped by aspect.
 
 * -d ARG
 
-Print a deck by id
+  Print a deck by id
 
-```sh
-mcdbcli -d 677339
-```
+  ```sh
+  mcdbcli -d 677339
+  ```
 
 * -l ARG
 
-Print a decklist by id
+  Print a decklist by id
 
-```sh
-mcdbcli -l 36680
-```
+  ```sh
+  mcdbcli -l 36680
+  ```
 
 * -a
 
