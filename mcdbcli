@@ -272,6 +272,10 @@ while getopts 'd:l:aprw' opt; do
 done
 
 if [ -z "$DECK_JSON" ]; then
+  if [ -t 0 ]; then
+    printf '\e[91mNo input!\e[0m\n' >&2
+    exit 1
+  fi
   read -rd '' DECK_JSON
 fi
 
