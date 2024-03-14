@@ -50,8 +50,8 @@ curl -s https://marvelcdb.com/api/public/decklist/36680 | mcdbcli
 
 ## MarvelCDB API
 
-mcdbcli only supports public APIs. To print your private decks you need to fetch them
-using the OAuth API yourself, and feed the JSON to mcdbcli via stdin.
+MarvelCDB CLI only supports public APIs. To print your private decks you need to fetch them
+using the OAuth API yourself, and feed the JSON to `mcdbcli` via stdin.
 
 ## Examples
 
@@ -423,7 +423,7 @@ Wild Tutor - Adam Warlock
 
 ## Caching
 
-mcdbcli caches the loaded cards to your home directory under `~/.mcdb/cards`. To remove the
+MarvelCDB CLI caches the loaded cards to your home directory under `~/.mcdb/cards`. To remove the
 cached cards run the following command:
 
 ```sh
