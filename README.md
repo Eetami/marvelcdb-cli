@@ -158,7 +158,7 @@ Wave #4
   1 × Shield Spell (Wave #4 The Mad Titan's Shadow #61)
 ```
 
-Print a popular deck in packs by aspect:
+Print a popular decklist in packs by aspect:
 
 ```console
 $ mcdbcli -l 13922 -p
@@ -230,7 +230,7 @@ The Mad Titan's Shadow
   1 × Shield Spell (Wave #4 The Mad Titan's Shadow #61)
 ```
 
-Print a popular deck in alphabetical order by aspect:
+Print a popular decklist in alphabetical order by aspect:
 
 ```console
 $ mcdbcli -l 13922 -a
@@ -277,7 +277,7 @@ Wild Tutor - Adam Warlock
   1 × The Sorcerer Supreme (Wave #1 Doctor Strange #26)
 ```
 
-Print a popular deck in waves in alphabetical order by aspect:
+Print a popular decklist in waves in alphabetical order by aspect:
 
 ```console
 $ mcdbcli -l 13922 -aw
@@ -336,7 +336,7 @@ Wave #4
   1 × Shield Spell (Wave #4 The Mad Titan's Shadow #61)
 ```
 
-Print a popular deck in absolute release order:
+Print a popular decklist in absolute release order:
 
 ```console
 $ mcdbcli -l 13922 -r
@@ -377,7 +377,7 @@ Wild Tutor - Adam Warlock
   1 × Shield Spell (Wave #4 The Mad Titan's Shadow #61)
 ```
 
-Print a popular deck in absolute alphabetical order (you madman!):
+Print a popular decklist in absolute alphabetical order (you madman!):
 
 ```console
 $ mcdbcli -l 13922 -aa
