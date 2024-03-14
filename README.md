@@ -27,19 +27,22 @@ By default mcdbcli prints the deck in release order grouped by aspect.
   Print aspect in alphabetical order.
   Combining with another -a prints the cards in absolute alphabetical order instead.
   Can be combined with -p and -w options.
+
 * -p
 
   Print in pack order.
   Can be combined with -a option.
+
 * -r
 
   Print in absolute release order.
+
 * -w
 
   Print in wave order.
   Can be combined with -a option.
 
-Without -d or -l arguments `mcdbcli` will read deck as JSON from stdin
+Without -d or -l options `mcdbcli` will read deck as JSON from stdin.
 
 ```sh
 curl -s https://marvelcdb.com/api/public/decklist/36680 | mcdbcli
@@ -47,12 +50,12 @@ curl -s https://marvelcdb.com/api/public/decklist/36680 | mcdbcli
 
 ## MarvelCDB API
 
-mcdbcli options only support public APIs. To print your private decks you need to fetch them
+mcdbcli only supports public APIs. To print your private decks you need to fetch them
 using the OAuth API yourself, and feed the JSON to mcdbcli via stdin.
 
-## Example
+## Examples
 
-Print a popular decklist by aspect:
+Print a popular decklist grouped by aspect:
 
 ```console
 $ mcdbcli -l 13922
@@ -420,7 +423,8 @@ Wild Tutor - Adam Warlock
 
 ## Caching
 
-mcdbcli caches the loaded cards to your home directory under `~/.mcdb/cards`. To remove the cached cards run the following command
+mcdbcli caches the loaded cards to your home directory under `~/.mcdb/cards`. To remove the
+cached cards run the following command:
 
 ```sh
 rm -rf ~/.mcdb
