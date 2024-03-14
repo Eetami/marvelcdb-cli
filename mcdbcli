@@ -136,7 +136,7 @@ print_factions() {
   for faction_json in $(jq -c '.[]' <<<"$cards_json"); do
     local faction_code=$(jq -r '.[0].faction_code' <<<"$faction_json")
     print_faction_heading $faction_code
-    for card_json in $(jq -c --arg alpha $ALPHABETICAL_ORDER 'if $alpha
+    for card_json in $(jq -c --arg alpha $ALPHABETICAL_ORDER 'if $alpha == "true"
     then sort_by(.real_name) | .[]
     else .[] end' <<<"$faction_json"); do
       print_card "$card_json"
