@@ -1,13 +1,28 @@
 #!/bin/bash
 
 declare MCDB_API_URL='https://marvelcdb.com/api/public'
-declare CARDS_CACHE="${HOME}/.mcdb/cards"
+declare MCDB_CACHE="${HOME}/.mcdb"
+declare PACKS_CACHE="${MCDB_CACHE}/packs.json"
+declare CARDS_CACHE="${MCDB_CACHE}/cards"
 declare ALPHABETICAL_ORDER=false
 declare PACK_ORDER=false
 declare RELEASE_ORDER=false
 declare SUPER_ALPHABETICAL_ORDER=false
 declare WAVE_ORDER=false
 declare DECK_JSON
+
+init_packs() {
+  if [ ! -d $MCDB_CACHE ]; then
+    mkdir -p $MCDB_CACHE
+  fi
+
+  if [ ! -f $PACKS_CACHE ]; then
+    curl -so "$PACKS_CACHE" "${MCDB_API_URL}/packs/"
+  fi
+
+  local -a pack_positions=($(jq -r '.[] | @text "\(.code)=\(.position)"' <$PACKS_CACHE))
+  export "${pack_positions[@]}"
+}
 
 print_faction_color() {
   local faction_code="$1"
@@ -37,24 +52,24 @@ print_faction_color() {
 }
 
 get_wave_number() {
-  local pack_id=${1:0:2}
-  local -i pack_number=${pack_id#0}
+  local pack_code=$1
+  local pack_position=$(jq -nr --arg pack_code $pack_code 'env[$pack_code]')
 
-  if [ $pack_number -lt 11 ]; then
+  if [ $pack_position -lt 10 ]; then
     echo 1
-  elif [ $pack_number -lt 16 ]; then
+  elif [ $pack_position -lt 16 ]; then
     echo 2
-  elif [ $pack_number -lt 21 ]; then
+  elif [ $pack_position -lt 21 ]; then
     echo 3
-  elif [ $pack_number -lt 27 ]; then
+  elif [ $pack_position -lt 27 ]; then
     echo 4
-  elif [ $pack_number -lt 32 ]; then
+  elif [ $pack_position -lt 32 ]; then
     echo 5
-  elif [ $pack_number -lt 39 ]; then
+  elif [ $pack_position -lt 40 ]; then
     echo 6
-  elif [ $pack_number -lt 45 ]; then
+  elif [ $pack_position -lt 45 ]; then
     echo 7
-  elif [ $pack_number -lt 50 ]; then
+  elif [ $pack_position -lt 50 ]; then
     echo 8
   else
     echo 99
@@ -65,7 +80,8 @@ print_card() {
   local card_json="$1"
 
   local card_id="$(jq -r '.code' <<<$card_json)"
-  local wave_number=$(get_wave_number "$card_id")
+  local pack_code="$(jq -r '.pack_code' <<<$card_json)"
+  local wave_number=$(get_wave_number "$pack_code")
   local amount=$(jq -r --arg card_id $card_id '.slots[$card_id]' <<<"${DECK_JSON}")
   local faction_code="$(jq -r '.faction_code' <<<$card_json)"
   local card_name="$(jq -r '.real_name' <<<$card_json)"
@@ -165,8 +181,8 @@ print_waves() {
   local IFS='
 '
   for wave_json in $(jq -c '.[]' <<<"$waves_json"); do
-    local card_id=$(jq -r '.[0].code' <<<"$wave_json")
-    local wave_number=$(get_wave_number $card_id)
+    local pack_code=$(jq -r '.[0].pack_code' <<<"$wave_json")
+    local wave_number=$(get_wave_number $pack_code)
     printf 'Wave #%d\n' "$wave_number"
     local faction_json=$(group_by_faction "$wave_json")
     print_factions "$faction_json"
@@ -217,19 +233,19 @@ print_deck() {
   elif $RELEASE_ORDER; then
     print_cards "${card_files[@]}"
   elif $WAVE_ORDER; then
-    local cards_json=$(jq -cn '[inputs] | group_by(.code | .[0:2] | tonumber |
-    if . < 11 then 1
+    local cards_json=$(jq -cn '[inputs] | group_by(.pack_code as $pack | env[$pack] | tonumber |
+    if . < 10 then 1
     elif . < 16 then 2
     elif . < 21 then 3
     elif . < 27 then 4
     elif . < 32 then 5
-    elif . < 39 then 6
+    elif . < 40 then 6
     elif . < 45 then 7
     elif . < 50 then 8
     else 99 end)' "${card_files[@]}")
     print_waves "$cards_json"
   elif $PACK_ORDER; then
-    local cards_json=$(jq -cn '[inputs] | group_by(.code | .[0:2] | tonumber)' "${card_files[@]}")
+    local cards_json=$(jq -cn '[inputs] | group_by(.pack_code as $pack | env[$pack])' "${card_files[@]}")
     print_packs "$cards_json"
   else
     local cards_json=$(jq -cn '[inputs] | group_by(.faction_code |
@@ -244,6 +260,8 @@ print_deck() {
     print_factions "$cards_json"
   fi
 }
+
+init_packs
 
 while getopts 'd:l:aprw' opt; do
   case $opt in
