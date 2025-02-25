@@ -136,7 +136,7 @@ print_faction_heading() {
       printf 'Basic cards'
       ;;
     'hero')
-      local hero_name=$(jq -r '.investigator_name' <<<"$DECK_JSON")
+      local hero_name=$(jq -r '.hero_name' <<<"$DECK_JSON")
       printf '%s cards' "$hero_name"
       ;;
   esac
