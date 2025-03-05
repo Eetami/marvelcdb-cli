@@ -20,6 +20,12 @@ init_packs() {
     curl -so "$PACKS_CACHE" "${MCDB_API_URL}/packs/"
   fi
 
+  local -i now=$(date '+%s')
+  local -i cache_modified=$(date -r $PACKS_CACHE '+%s')
+  if ((now - date > 60 * 60 * 24 * 7)); then
+    curl -so "$PACKS_CACHE" "${MCDB_API_URL}/packs/"
+  fi
+
   local -a pack_positions=($(jq -r '.[] | @text "\(.code)=\(.position)"' <$PACKS_CACHE))
   export "${pack_positions[@]}"
 }
@@ -71,6 +77,8 @@ get_wave_number() {
     echo 7
   elif [ $pack_position -lt 50 ]; then
     echo 8
+  elif [ $pack_position -lt 55 ]; then
+    echo 9
   else
     echo 99
   fi
