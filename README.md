@@ -42,6 +42,9 @@ By default mcdbcli prints the deck in release order grouped by aspect.
   Print in wave order.
   Can be combined with -a option.
 
+* -u
+  Print duplicates alongside originals.
+
 Without -d or -l options `mcdbcli` will read deck as JSON from stdin.
 
 ```sh

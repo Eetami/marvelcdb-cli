@@ -9,6 +9,7 @@ declare PACK_ORDER=false
 declare RELEASE_ORDER=false
 declare SUPER_ALPHABETICAL_ORDER=false
 declare WAVE_ORDER=false
+declare PRINT_DUPLICATES=false
 declare DECK_JSON
 
 init_packs() {
@@ -95,12 +96,30 @@ print_card() {
   local card_name="$(jq -r '.real_name' <<<$card_json)"
   local pack_name="$(jq -r '.pack_name' <<<$card_json)"
   local position="$(jq -r '.position' <<<$card_json)"
+  local -a duplicate_files
+
+  if $PRINT_DUPLICATES; then
+    for duplicate_id in $(jq -r 'if (.duplicated_by | length) > 0 then .duplicated_by[] else empty end' <<<$card_json); do
+      duplicate_files+=($(get_card_file $duplicate_id))
+    done
+  fi
 
   printf '  %d \u00D7 ' "$amount"
 
   print_faction_color "$faction_code"
 
-  printf '%s\e[0m (\e[90mWave #%s\e[0m %s #%d)\n' "$card_name" "$wave_number" "$pack_name" "$position"
+  printf '%s\e[0m (\e[90mWave #%d\e[0m %s #%d' "$card_name" "$wave_number" "$pack_name" "$position"
+
+  if $PRINT_DUPLICATES; then
+    for duplicate_file in "${duplicate_files[@]}"; do
+      local duplicate_pack_code=$(jq -r '.pack_code' $duplicate_file)
+      local duplicate_wave_number=$(get_wave_number "$duplicate_pack_code")
+      local duplicate_pack_name=$(jq -r '.pack_name' $duplicate_file)
+      local duplicate_position=$(jq -r '.position' $duplicate_file)
+      printf '\e[90m, Wave #%d\e[0m %s #%d' "$duplicate_wave_number" "$duplicate_pack_name" "$duplicate_position"
+    done
+  fi
+  printf ')\n'
 }
 
 get_card_file() {
@@ -228,12 +247,13 @@ print_cards() {
 
 print_deck() {
   local deck_name=$(jq -r '.name' <<<"$DECK_JSON")
+  local hero_name=$(jq -r '.hero_name' <<<"$DECK_JSON")
 
-  printf '%s\n' "$deck_name"
+  printf '%s (%s)\n' "$deck_name" "$hero_name"
 
   local -a card_files
-  for card_id_json in $(jq -r '.slots | keys | .[]' <<<"$DECK_JSON"); do
-    card_files+=($(get_card_file $card_id_json))
+  for card_id in $(jq -r '.slots | keys | .[]' <<<"$DECK_JSON"); do
+    card_files+=($(get_card_file $card_id))
   done
 
   if $SUPER_ALPHABETICAL_ORDER; then
@@ -271,7 +291,7 @@ print_deck() {
 
 init_packs
 
-while getopts 'd:l:aprw' opt; do
+while getopts 'd:l:aprwu' opt; do
   case $opt in
     d)
       DECK_JSON="$(curl -s "${MCDB_API_URL}/deck/${OPTARG}")"
@@ -293,6 +313,9 @@ while getopts 'd:l:aprw' opt; do
       ;;
     w)
       WAVE_ORDER=true
+      ;;
+    u)
+      PRINT_DUPLICATES=true
       ;;
   esac
 done
